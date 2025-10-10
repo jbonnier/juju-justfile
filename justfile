@@ -12,11 +12,12 @@ help:
 # Azure
 #-----------------------------------------------------------------------------------------------------------------------
 
+# This recipe assumes you have a config.json file in the same directory as the justfile
 [doc('Perform az login for a tenant')]
 [group('azure')]
 [script('/bin/bash')]
 az-login client="":
-    config_file="config.json"
+    config_file="$(realpath {{justfile()}} | xargs dirname)/config.json"
     if [[ ! -f "$config_file" ]]; then
         echo "Config file not found: $config_file"
         exit 1
