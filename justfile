@@ -81,3 +81,50 @@ aws-get-switch-role-url account-id="" role-name="" display-name="":
     done
 
     echo "https://signin.aws.amazon.com/switchrole?account=${account_id}&roleName=${role_name}&displayName=${display_name}"
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Helpers
+#-----------------------------------------------------------------------------------------------------------------------
+
+[doc('Create an SSH tunnel to a remote server')]
+[group('helpers')]
+[script('/bin/bash')]
+tunnel local-port="" remote-addr="" remote-port="" bastion-user="" bastion-addr="" bastion-port="22" private-key-path="~/.ssh/id_rsa":
+    local_port="{{local-port}}"
+    remote_addr="{{remote-addr}}"
+    remote_port="{{remote-port}}"
+    bastion_user="{{bastion-user}}"
+    bastion_addr="{{bastion-addr}}"
+    bastion_port="{{bastion-port}}"
+    private_key_path="{{private-key-path}}"
+
+    while [[ -z "$local_port" ]]; do
+        read -p "Please enter the local port: " local_port
+    done
+    while [[ -z "$remote_addr" ]]; do
+        read -p "Please enter the remote address (final target): " remote_addr
+    done
+    while [[ -z "$remote_port" ]]; do
+        read -p "Please enter the remote port (final target): " remote_port
+    done
+    while [[ -z "$bastion_user" ]]; do
+        read -p "Please enter the bastion user: " bastion_user
+    done
+    while [[ -z "$bastion_addr" ]]; do
+        read -p "Please enter the bastion address: " bastion_addr
+    done
+    while [[ -z "$bastion_port" ]]; do
+        read -p "Please enter the bastion port: " bastion_port
+    done
+    while [[ -z "$private_key_path" || ! -f "$private_key_path" ]]; do
+        read -p "Please enter a path to a valid private key: " private_key_path
+    done
+
+    ssh -L ${local_port}:${remote_addr}:${remote_port} -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=no -i ${private_key_path} -p ${bastion_port} ${bastion_user}@${bastion_addr} &
+
+    tunnel_pid=$!
+
+    echo >&2 ""
+    echo >&2 "Tunnel started with PID ${tunnel_pid}."
+    echo >&2 "To stop it, run: kill ${tunnel_pid}"
+    echo >&2 "You should now be able to connect to 127.0.0.1 on port ${local_port}."
