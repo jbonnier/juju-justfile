@@ -128,3 +128,24 @@ tunnel local-port="" remote-addr="" remote-port="" bastion-user="" bastion-addr=
     echo >&2 "Tunnel started with PID ${tunnel_pid}."
     echo >&2 "To stop it, run: kill ${tunnel_pid}"
     echo >&2 "You should now be able to connect to 127.0.0.1 on port ${local_port}."
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Docker tools
+#-----------------------------------------------------------------------------------------------------------------------
+
+# For now we simply assume that the server is directly accessible from the host machine.
+# Tip: You might need to connect through a bastion, if so, use the tunnel recipe first.
+[doc('Run pg_dump in a local container')]
+[group('tools')]
+[script('/bin/bash')]
+pg_dump database-name postgres-user postgres-version="latest" pg-dump-extra-args="":
+    set -eu
+    temp_path=$(mktemp -d)
+    user_id=$(id -u)
+    group_id=$(id -g)
+    today=$(date +%Y-%m-%d)
+    docker run -it --rm -v "$temp_path:/workspace" --workdir /workspace --user "$user_id:$group_id" postgres:{{postgres-version}} \
+        pg_dump -h host.docker.internal -p 5433 -U {{postgres-user}} -W -f dump-${today}.sql -d {{database-name}} {{pg-dump-extra-args}}
+
+    echo >&2 ""
+    echo >&2 "Dump created at: $temp_path/dump-${today}.sql"
