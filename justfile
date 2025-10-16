@@ -19,14 +19,14 @@ help:
 az-login client="":
     config_file="$(realpath {{justfile()}} | xargs dirname)/config.json"
     if [[ ! -f "$config_file" ]]; then
-        echo "Config file not found: $config_file"
+        echo >&2 "Config file not found: $config_file"
         exit 1
     fi
     client_lower=$(echo "{{client}}" | tr '[:upper:]' '[:lower:]')
     tenant=$(jq -r --arg name "$client_lower" '.azure_tenants[] | select(.name | ascii_downcase == $name) | .id' "$config_file")
     if [[ -z "$tenant" || "$tenant" == "null" ]]; then
-        echo "Invalid client: {{client}}"
-        echo "Available clients are: $(jq -r '.azure_tenants[].name' "$config_file" | awk 'ORS=", "' | sed 's/, $//')"
+        echo >&2 "Invalid client: {{client}}"
+        echo >&2 "Available clients are: $(jq -r '.azure_tenants[].name' "$config_file" | awk 'ORS=", "' | sed 's/, $//')"
         exit 1
     fi
     az login --tenant=$tenant --use-device-code
@@ -46,7 +46,7 @@ az-aks-creds cluster resource-group:
 aws-route53-export zone-name format="txt" outfile="/dev/stdout":
     zoneid=$(aws route53 list-hosted-zones --output json | jq -r ".HostedZones[] | select(.Name == \"{{zone-name}}.\") | .Id" | cut -d'/' -f3)
     if [[ -z "$zoneid" ]]; then
-        echo "Zone {{zone-name}} not found."
+        echo >&2 "Zone {{zone-name}} not found."
         exit 1
     fi
     records=$(aws route53 list-resource-record-sets --hosted-zone-id $zoneid --output json)
@@ -122,6 +122,7 @@ tunnel local-port="" remote-addr="" remote-port="" bastion-user="" bastion-addr=
 
     ssh -L ${local_port}:${remote_addr}:${remote_port} -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=no -i ${private_key_path} -p ${bastion_port} ${bastion_user}@${bastion_addr} &
 
+    # Get the PID of the last background command
     tunnel_pid=$!
 
     echo >&2 ""
