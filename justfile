@@ -1,6 +1,5 @@
 set quiet
 set ignore-comments
-set unstable # required for scripts
 
 [doc("Display this help and exit")]
 help:
@@ -15,8 +14,8 @@ help:
 # This recipe assumes you have a config.json file in the same directory as the justfile
 [doc('Perform az login for a tenant')]
 [group('azure')]
-[script('/bin/bash')]
 az-login client="":
+    #!/bin/bash
     config_file="$(realpath {{justfile()}} | xargs dirname)/config.json"
     if [[ ! -f "$config_file" ]]; then
         echo >&2 "Config file not found: $config_file"
@@ -33,8 +32,13 @@ az-login client="":
 
 [doc('Get the AKS credentials for kubectl/k9s')]
 [group('azure')]
-az-aks-creds cluster resource-group:
+az-aks-creds resource-group cluster:
     az aks get-credentials --name {{cluster}} --resource-group {{resource-group}}
+
+[doc('Execute a command in an Azure Container Instance')]
+[group('azure')]
+az-ci-exec resource-group container-instance-name container-name command="bash":
+    az container exec --resource-group {{resource-group}} --name {{container-instance-name}} --container {{container-name}} --exec-command "{{command}}"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # AWS
@@ -42,8 +46,8 @@ az-aks-creds cluster resource-group:
 
 [doc('Export a Route53 zone to a file')]
 [group('aws')]
-[script('/bin/bash')]
 aws-route53-export zone-name format="txt" outfile="/dev/stdout":
+    #!/bin/bash
     zoneid=$(aws route53 list-hosted-zones --output json | jq -r ".HostedZones[] | select(.Name == \"{{zone-name}}.\") | .Id" | cut -d'/' -f3)
     if [[ -z "$zoneid" ]]; then
         echo >&2 "Zone {{zone-name}} not found."
@@ -64,8 +68,8 @@ aws-route53-export zone-name format="txt" outfile="/dev/stdout":
 
 [doc('Get the Switch Role URL for an account/role')]
 [group('aws')]
-[script('/bin/bash')]
 aws-get-switch-role-url account-id="" role-name="" display-name="":
+    #!/bin/bash
     account_id="{{account-id}}"
     role_name="{{role-name}}"
     display_name="{{display-name}}"
@@ -88,8 +92,8 @@ aws-get-switch-role-url account-id="" role-name="" display-name="":
 
 [doc('Create an SSH tunnel to a remote server')]
 [group('helpers')]
-[script('/bin/bash')]
 tunnel local-port="" remote-addr="" remote-port="" bastion-user="" bastion-addr="" bastion-port="22" private-key-path="~/.ssh/id_rsa":
+    #!/bin/bash
     local_port="{{local-port}}"
     remote_addr="{{remote-addr}}"
     remote_port="{{remote-port}}"
@@ -138,8 +142,8 @@ tunnel local-port="" remote-addr="" remote-port="" bastion-user="" bastion-addr=
 # Tip: You might need to connect through a bastion, if so, use the tunnel recipe first.
 [doc('Run pg_dump in a local container')]
 [group('tools')]
-[script('/bin/bash')]
 pg_dump database-name postgres-user postgres-version="latest" pg-dump-extra-args="":
+    #!/bin/bash
     set -eu
     temp_path=$(mktemp -d)
     user_id=$(id -u)
