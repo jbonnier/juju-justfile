@@ -6,7 +6,7 @@ A collection of automation recipes for cloud operations and developer workflows,
 
 ## Requirements
 
-- [just](https://github.com/casey/just)
+- [just](https://github.com/casey/just) v1.44.0 or higher
 - Bash shell
 - Cloud CLIs: `az`, `aws`, `jq`, `docker`
 

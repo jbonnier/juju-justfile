@@ -1,6 +1,9 @@
 set quiet
 set ignore-comments
 
+# You need just v1.44.0 or higher for this interpolation to work
+config_file := f`$(realpath {{justfile()}} | xargs dirname)/config.json`
+
 [doc("Display this help and exit")]
 help:
     echo >&2 "\nJuju's just recipes\n\nUsage:\n just RECIPE [PARAMETERS]\n"
@@ -16,16 +19,15 @@ help:
 [group('azure')]
 az-login client="":
     #!/bin/bash
-    config_file="$(realpath {{justfile()}} | xargs dirname)/config.json"
-    if [[ ! -f "$config_file" ]]; then
-        echo >&2 "Config file not found: $config_file"
+    if [[ ! -f "{{config_file}}" ]]; then
+        echo >&2 "Config file not found: {{config_file}}"
         exit 1
     fi
     client_lower=$(echo "{{client}}" | tr '[:upper:]' '[:lower:]')
-    tenant=$(jq -r --arg name "$client_lower" '.azure_tenants[] | select(.name | ascii_downcase == $name) | .id' "$config_file")
+    tenant=$(jq -r --arg name "$client_lower" '.azure_tenants[] | select(.name | ascii_downcase == $name) | .id' "{{config_file}}")
     if [[ -z "$tenant" || "$tenant" == "null" ]]; then
         echo >&2 "Invalid client: {{client}}"
-        echo >&2 "Available clients are: $(jq -r '.azure_tenants[].name' "$config_file" | awk 'ORS=", "' | sed 's/, $//')"
+        echo >&2 "Available clients are: $(jq -r '.azure_tenants[].name' "{{config_file}}" | awk 'ORS=", "' | sed 's/, $//')"
         exit 1
     fi
     az login --tenant=$tenant --use-device-code
