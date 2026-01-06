@@ -156,3 +156,26 @@ pg_dump database-name postgres-user postgres-version="latest" pg-dump-extra-args
 
     echo >&2 ""
     echo >&2 "Dump created at: $temp_path/dump-${today}.sql"
+
+[doc('Start/Stop an IT-Tools container')]
+[group('tools')]
+it-tools action="start":
+    #!/bin/bash
+    action="{{action}}"
+    case "$action" in
+        start)
+            docker run -d --name it-tools --rm -p :80 corentinth/it-tools:latest
+            echo >&2 "IT-Tools container started."
+            PORT=$(docker inspect it-tools | jq -r '.[0].NetworkSettings.Ports["80/tcp"][] | select(.HostIp=="0.0.0.0") | .HostPort')
+            echo >&2 "Access it at: http://localhost:${PORT}"
+            ;;
+        stop)
+            docker stop it-tools
+            echo >&2 "IT-Tools container stopped."
+            ;;
+        *)
+            echo >&2 "Invalid action: $action"
+            echo >&2 "Available actions are: start, stop"
+            exit 1
+            ;;
+    esac
